@@ -10,31 +10,472 @@
             margin: 0;
             padding: 20px;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            animation: backgroundShift 20s ease-in-out infinite;
+        }
+
+        @keyframes backgroundShift {
+            0%, 100% { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); }
+            50% { background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%); }
         }
 
         .container {
             background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
+            border-radius: 25px;
+            padding: 35px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             max-width: 1200px;
             width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
         }
 
         h1 {
             text-align: center;
-            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 10px;
-            font-size: 2.5em;
-            font-weight: 300;
+            font-size: 2.8em;
+            font-weight: 600;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            font-style: italic;
+        }
+
+        #tree-container {
+            width: 100%;
+            height: 800px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .node circle {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node text {
+            font: 13px 'Segoe UI', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .node:hover circle {
+            stroke-width: 4px;
+            filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.4));
+            transform: scale(1.1);
+        }
+
+        .node:hover text {
+            font-weight: bold;
+            font-size: 16px;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+        }
+
+        .link {
+            fill: none;
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .link:hover {
+            stroke-width: 4px;
+            filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.3));
+        }
+
+        .root-node circle {
+            fill: url(#rootGradient);
+            stroke: #c0392b;
+            filter: drop-shadow(0 2px 6px rgba(231, 76, 60, 0.3));
+        }
+
+        .interactive-node circle {
+            fill: url(#interactiveGradient);
+            stroke: #e67e22;
+            filter: drop-shadow(0 2px 6px rgba(243, 156, 18, 0.3));
+        }
+
+        .non-interactive-node circle {
+            fill: url(#nonInteractiveGradient);
+            stroke: #8e44ad;
+            filter: drop-shadow(0 2px 6px rgba(155, 89, 182, 0.3));
+        }
+
+        .interactive-leaf circle {
+            fill: url(#interactiveLeafGradient);
+            stroke: #f39c12;
+            filter: drop-shadow(0 1px 4px rgba(241, 196, 15, 0.3));
+        }
+
+        .non-interactive-leaf circle {
+            fill: url(#nonInteractiveLeafGradient);
+            stroke: #2980b9;
+            filter: drop-shadow(0 1px 4px rgba(52, 152, 219, 0.3));
+        }
+
+        .root-link {
+            stroke: #e74c3c;
+        }
+
+        .interactive-link {
+            stroke: #f39c12;
+        }
+
+        .non-interactive-link {
+            stroke: #9b59b6;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(44, 62, 80, 0.95));
+            color: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            max-width: 350px;
+            line-height: 1.5;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .control-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-button:hover::before {
+            left: 100%;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #2c3e50;
+        }
+
+        .legend-circle {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid;
+        }
+
+        .context-note {
+            font-size: 11px;
+            fill: #666;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            #tree-container {
+                height: 600px;
+            }
+
+            .legend {
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Protocols Taxonomy</h1>
+        <p class="subtitle">Interactive vs Non-Interactive Protocol Classification</p>
+        <div id="tree-container"></div>
+        <div class="controls">
+            <button class="control-button" onclick="expandAll()">Expand All</button>
+            <button class="control-button" onclick="collapseAll()">Collapse All</button>
+            <button class="control-button" onclick="resetView()">Reset View</button>
+        </div>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-circle" style="background: #e74c3c; border-color: #c0392b;"></div>
+                <span>Root Concept</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-circle" style="background: #f39c12; border-color: #e67e22;"></div>
+                <span>Interactive Protocols</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-circle" style="background: #9b59b6; border-color: #8e44ad;"></div>
+                <span>Non-Interactive Protocols</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-circle" style="background: #f1c40f; border-color: #f39c12;"></div>
+                <span>Interactive Methods</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-circle" style="background: #3498db; border-color: #2980b9;"></div>
+                <span>Non-Interactive Methods</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Data structure for the privacy protocols tree
+        const treeData = {
+            name: "Privacy",
+            children: [
+                {
+                    name: "Interactive Protocols",
+                    children: [
+                        { name: "Identity Mixers" },
+                        { name: "Anonymous Credentials", note: "issuance phase" },
+                        { name: "Mixnets" },
+                        { name: "CoinJoin + CoinShuffle" },
+                        { name: "Blind Signatures", note: "signing is interactive" },
+                        { name: "Secure Multiparty Computation - SMC" },
+                        { name: "Stealth Transactions", note: "setup/negotiation" }
+                    ]
+                },
+                {
+                    name: "Non-Interactive Protocols",
+                    children: [
+                        { name: "Credentials" },
+                        { name: "Identity" },
+                        { name: "Claims" },
+                        { name: "PKI" },
+                        { name: "Private Key Infrastructure" },
+                        { name: "Digital Signature" },
+                        { name: "Group Signatures" },
+                        { name: "Ring Signatures" },
+                        { name: "ZK-SNARKs" },
+                        { name: "ZK-STARKs" },
+                        { name: "ZK-Rollups" },
+                        { name: "Bulletproofs" },
+                        { name: "BOLT", note: "non-interactive once setup" },
+                        { name: "PGP" },
+                        { name: "PRF" },
+                        { name: "HMAC, KDF" },
+                        { name: "OPRF", note: "hybrid but usually non-interactive" },
+                        { name: "Homomorphic Encryption" },
+                        { name: "PKE, FHE" }
+                    ]
+                }
+            ]
+        };
+
+        // Set up dimensions and margins
+        const margin = { top: 40, right: 120, bottom: 40, left: 120 };
+        const width = 1000 - margin.left - margin.right;
+        const height = 720 - margin.top - margin.bottom;
+
+        // Create SVG
+        const svg = d3.select("#tree-container")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .style("background", "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #dee2e6 100%)");
+
+        // Add gradient definitions
+        const defs = svg.append("defs");
+
+        // Root gradient
+        const rootGradient = defs.append("radialGradient")
+            .attr("id", "rootGradient");
+        rootGradient.append("stop").attr("offset", "0%").attr("stop-color", "#ff6b6b");
+        rootGradient.append("stop").attr("offset", "100%").attr("stop-color", "#e74c3c");
+
+        // Interactive gradient
+        const interactiveGradient = defs.append("radialGradient")
+            .attr("id", "interactiveGradient");
+        interactiveGradient.append("stop").attr("offset", "0%").attr("stop-color", "#feca57");
+        interactiveGradient.append("stop").attr("offset", "100%").attr("stop-color", "#f39c12");
+
+        // Non-interactive gradient
+        const nonInteractiveGradient = defs.append("radialGradient")
+            .attr("id", "nonInteractiveGradient");
+        nonInteractiveGradient.append("stop").attr("offset", "0%").attr("stop-color", "#a29bfe");
+        nonInteractiveGradient.append("stop").attr("offset", "100%").attr("stop-color", "#9b59b6");
+
+        // Interactive leaf gradient
+        const interactiveLeafGradient = defs.append("radialGradient")
+            .attr("id", "interactiveLeafGradient");
+        interactiveLeafGradient.append("stop").attr("offset", "0%").attr("stop-color", "#f9ca24");
+        interactiveLeafGradient.append("stop").attr("offset", "100%").attr("stop-color", "#f1c40f");
+
+        // Non-interactive leaf gradient
+        const nonInteractiveLeafGradient = defs.append("radialGradient")
+            .attr("id", "nonInteractiveLeafGradient");
+        nonInteractiveLeafGradient.append("stop").attr("offset", "0%").attr("stop-color", "#74b9ff");
+        nonInteractiveLeafGradient.append("stop").attr("offset", "100%").attr("stop-color", "#3498db");
+
+        const g = svg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // Create tree layout
+        const tree = d3.tree().size([height, width]);
+
+        // Create hierarchy
+        const root = d3.hierarchy(treeData);
+        
+        let i = 0;
+        const duration = 750;
+
+        // Assign unique IDs and initialize
+        root.x0 = height / 2;
+        root.y0 = 0;
+
+        // Collapse all children initially except first level
+        root.children.forEach(collapse);
+
+        function collapse(d) {
+            if (d.children) {
+                d._children = d.children;
+                d._children.forEach(collapse);
+                d.children = null;
+            }
+        }
+
+        // Tooltip
+        const tooltip = d3.select("#tooltip");
+
+        // Update function
+        function update(source) {
+            const treeData = tree(root);
+            const nodes = treeData.descendants();
+            const links = treeData.descendants().slice(1);
+
+            // Normalize for fixed-depth
+            nodes.forEach(d => d.y = d.depth * 220);
+
+            // Update nodes
+            const node = g.selectAll('g.node')
+                .data(nodes, d => d.id || (d.id = ++i));
+
+            // Enter new nodes
+            const nodeEnter = node.enter().append('g')
+                .attr('class', 'node')
+                .attr('transform', d => `translate(${source.y0},${source.x0})`)
+                .on('click', click)
+                .on('mouseover', function(event, d) {
+                    const descriptions = {
+                        "Privacy": "The fundamental concept of protecting personal information, communications, and digital activities through various cryptographic and technical protocols. It encompasses both hiding identity (anonymity) and protecting content (confidentiality).",
+                        
+                        "Interactive Protocols": "Privacy methods requiring real-time communication, coordination, or negotiation between multiple parties. These protocols typically involve multiple rounds of message exchange to achieve privacy goals.",
+                        
+                        "Non-Interactive Protocols": "Privacy methods that can function without ongoing communication between parties once initially established. These protocols allow privacy-preserving operations with minimal or no interaction.",
+
+                        // Interactive Protocols
+                        "Identity Mixers": "Advanced cryptographic systems that enable anonymous authentication by allowing users to prove possession of credentials without revealing their identity. They use sophisticated mixing techniques to break linkability between different authentications.",
+                        
+                        "Anonymous Credentials": "Digital certificates that allow users to prove certain attributes (age, membership, etc.) without revealing their identity. The issuance phase requires interaction between the credential issuer and holder to establish the cryptographic relationship.",
+                        
+                        "Mixnets": "Networks that provide strong anonymity by routing messages through multiple intermediate nodes (mixes) that shuffle, delay, and re-encrypt messages. Each mix removes one layer of encryption, making traffic analysis extremely difficult.",
+                        
+                        "CoinJoin + CoinShuffle": "Bitcoin privacy protocols that allow multiple users to combine their transactions into a single large transaction, making it difficult to determine which inputs correspond to which outputs. Requires coordination among participants.",
+                        
+                        "Blind Signatures": "Cryptographic primitive where a signer signs a message without seeing its content. The signing process is interactive - the message is 'blinded' before signing and 'unblinded' after, ensuring the signer cannot link the signature to the original interaction.",
+                        
+                        "Secure Multiparty Computation - SMC": "Protocols enabling multiple parties to jointly compute functions over their private inputs without revealing those inputs to each other. Requires extensive interaction and communication between all participants throughout the computation.",
+                        
+                        "Stealth Transactions": "Privacy-preserving payment methods where the recipient's address is hidden from public view. The setup and negotiation phase requires interaction between sender and receiver to establish shared secrets for address generation.",
+
+                        // Non-Interactive Protocols
+                        "Credentials": "Digital certificates or tokens that attest to certain attributes or permissions. Once issued, they can typically be verified without requiring interaction with the issuing authority.",
+                        
+                        "Identity": "Digital representations of entities (users, devices, organizations) that can be verified and authenticated through cryptographic means without requiring constant interaction with identity providers.",
+                        
+                        "Claims": "Assertions about entities or their attributes that can be cryptographically verified. Once established, claims can be validated independently without contacting the original asserting party.",
+                        
+                        "PKI": "Public Key Infrastructure - a framework for managing digital certificates and public-key encryption. Once established, enables secure communication and authentication without requiring interactive key exchange for each operation.",
+                        
+                        "Private Key Infrastructure": "Systems for securely generating, storing, and managing private cryptographic keys. Once properly established, allows for non-interactive signing and decryption operations.",
+                        
+                        "Digital Signature": "Cryptographic mechanism that ensures authenticity and integrity of digital messages. Once a message is signed, the signature can be verified by anyone with the public key without interaction with the signer.",
+                        
+                        "Group Signatures": "Allow members of a group to sign messages on behalf of the group without revealing which specific membe            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .subtitle {
