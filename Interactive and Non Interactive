@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Privacy Protocols Taxonomy</title>
+    <title>Interactive Privacy Taxonomy Graph</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
     <style>
         * {
@@ -13,323 +13,449 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #667eea 100%);
             min-height: 100vh;
-            padding: 20px;
-            animation: backgroundShift 20s ease-in-out infinite;
-        }
-
-        @keyframes backgroundShift {
-            0%, 100% { background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%); }
-            50% { background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%); }
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 25px;
-            padding: 30px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            position: relative;
             overflow: hidden;
         }
 
-        .container::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-            animation: shimmer 3s infinite;
-            pointer-events: none;
+        .app-container {
+            display: flex;
+            height: 100vh;
         }
 
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        .sidebar {
+            width: 350px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-310px);
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
         }
 
         .header {
+            color: white;
             text-align: center;
-            margin-bottom: 30px;
-            position: relative;
-            z-index: 10;
+            margin-bottom: 20px;
         }
 
-        .title {
-            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-size: clamp(2rem, 5vw, 3.5rem);
-            font-weight: 700;
-            margin-bottom: 10px;
-            line-height: 1.2;
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
-        .subtitle {
-            color: #7f8c8d;
-            font-size: clamp(1rem, 2vw, 1.2rem);
-            font-style: italic;
+        .header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
         }
 
-        .graph-container {
+        .search-container {
+            margin-bottom: 20px;
+        }
+
+        .search-input {
             width: 100%;
-            height: 80vh;
-            min-height: 600px;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: relative;
-            z-index: 10;
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.15);
         }
 
         .controls {
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 25px 0;
-            flex-wrap: wrap;
-            position: relative;
-            z-index: 10;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 30px;
+            padding: 10px 15px;
+            border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
             transition: all 0.3s ease;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-            position: relative;
-            overflow: hidden;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            font-size: 13px;
         }
 
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .control-btn.active {
+            background: rgba(78, 205, 196, 0.3);
+            border-color: rgba(78, 205, 196, 0.5);
+        }
+
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .info-panel h3 {
+            color: #4ecdc4;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .info-panel p {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        #graph {
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s;
+            cursor: grab;
         }
 
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        #graph:active {
+            cursor: grabbing;
         }
 
-        .btn:hover::before {
-            left: 100%;
+        .node {
+            cursor: pointer;
+        }
+
+        .node circle {
+            fill: #4a90e2;
+            stroke: #ffffff;
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .node.root circle {
+            fill: #ff6b6b;
+            stroke-width: 3px;
+        }
+
+        .node.main circle {
+            fill: #4ecdc4;
+        }
+
+        .node.technique circle {
+            fill: #45b7d1;
+        }
+
+        .node.selected circle {
+            stroke: #ffd700;
+            stroke-width: 4px;
+            filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6));
+        }
+
+        .node.highlighted circle {
+            fill: #ff9800;
+            stroke: #fff;
+            stroke-width: 3px;
+        }
+
+        .node.dimmed {
+            opacity: 0.3;
+        }
+
+        .node text {
+            fill: white;
+            font-size: 11px;
+            font-weight: 500;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .node.root text {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .node.main text {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .link {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.4);
+            stroke-width: 2;
+            stroke-linecap: round;
+            transition: all 0.3s ease;
+            marker-end: url(#arrowhead);
+        }
+
+        .link.highlighted {
+            stroke: rgba(255, 215, 0, 0.8);
+            stroke-width: 3;
+            marker-end: url(#arrowhead-highlighted);
+        }
+
+        .link.dimmed {
+            opacity: 0.1;
+        }
+
+        /* Arrow styles */
+        .arrowhead {
+            fill: rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        .arrowhead-highlighted {
+            fill: rgba(255, 215, 0, 0.8);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(15px);
+            max-width: 350px;
+            line-height: 1.4;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+        }
+
+        .tooltip h4 {
+            margin: 0 0 8px 0;
+            color: #4ecdc4;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .tooltip p {
+            margin: 0;
+            color: #e0e0e0;
+        }
+
+        .breadcrumb {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .breadcrumb-active {
+            color: #4ecdc4;
+            font-weight: 600;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .node.pulsing circle {
+            animation: pulse 1s infinite;
         }
 
         .legend {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-            position: relative;
-            z-index: 10;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 12px;
+            backdrop-filter: blur(10px);
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: #2c3e50;
-            background: rgba(255, 255, 255, 0.7);
-            padding: 8px 12px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
+            margin: 5px 0;
         }
 
         .legend-circle {
-            width: 16px;
-            height: 16px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            border: 2px solid;
-            flex-shrink: 0;
+            margin-right: 8px;
+            border: 1px solid white;
         }
 
-        .tooltip {
+        .instructions {
             position: absolute;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(44, 62, 80, 0.95));
-            color: white;
-            padding: 16px 20px;
-            border-radius: 12px;
-            font-size: 13px;
-            pointer-events: none;
-            opacity: 0;
-            transition: all 0.3s ease;
-            z-index: 1000;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
-            max-width: 400px;
-            line-height: 1.5;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        /* Node and link styles */
-        .node {
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .node circle {
-            transition: all 0.3s ease;
-            stroke-width: 2px;
-        }
-
-        .node text {
-            font-family: inherit;
-            font-size: 13px;
-            transition: all 0.3s ease;
-            pointer-events: none;
-        }
-
-        .node:hover circle {
-            stroke-width: 4px;
-            filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.4));
-        }
-
-        .node:hover text {
-            font-weight: bold;
-            font-size: 15px;
-            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-        }
-
-        .link {
-            fill: none;
-            stroke-width: 2px;
-            transition: all 0.3s ease;
-        }
-
-        .link:hover {
-            stroke-width: 4px;
-            filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.3));
-        }
-
-        .context-note {
-            font-size: 11px;
-            fill: #666;
-            font-style: italic;
-        }
-
-        /* GitHub Pages compatibility */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            
-            .container {
-                padding: 20px;
-            }
-            
-            .graph-container {
-                height: 70vh;
-                min-height: 500px;
-            }
-            
-            .controls {
-                gap: 10px;
-            }
-            
-            .btn {
-                padding: 10px 18px;
-                font-size: 13px;
-            }
-            
-            .legend {
-                gap: 15px;
-            }
-            
-            .legend-item {
-                font-size: 12px;
-                padding: 6px 10px;
-            }
-        }
-
-        /* Loading animation */
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 200px;
-            font-size: 18px;
-            color: #7f8c8d;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #e3e3e3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1 class="title">Privacy Protocols Taxonomy</h1>
-            <p class="subtitle">Interactive vs Non-Interactive Protocol Classification</p>
-        </div>
+    <div class="app-container">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
         
-        <div class="controls">
-            <button class="btn" onclick="expandAll()">🔍 Expand All</button>
-            <button class="btn" onclick="collapseAll()">📁 Collapse All</button>
-            <button class="btn" onclick="resetView()">🔄 Reset View</button>
-            <button class="btn" onclick="downloadSVG()">💾 Download SVG</button>
-        </div>
-        
-        <div class="graph-container" id="graph-container">
-            <div class="loading">
-                <div class="spinner"></div>
-                Loading interactive graph...
+        <div class="sidebar" id="sidebar">
+            <div class="header">
+                <h1>Privacy Taxonomy</h1>
+                <p>Interactive Knowledge Graph</p>
+            </div>
+
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search techniques..." id="searchInput" oninput="searchNodes()">
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="nodeCount">29</div>
+                    <div class="stat-label">Techniques</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="visibleCount">3</div>
+                    <div class="stat-label">Visible</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn" onclick="centerGraph()">🎯 Center View</button>
+                <button class="control-btn" onclick="toggleLayout()" id="layoutBtn">🌐 Network Layout</button>
+                <button class="control-btn" onclick="expandAll()">📖 Expand All</button>
+                <button class="control-btn" onclick="collapseAll()">📚 Collapse All</button>
+                <button class="control-btn" onclick="resetSelection()">✨ Clear Selection</button>
+            </div>
+
+            <div class="breadcrumb" id="breadcrumb">
+                <span class="breadcrumb-active">Privacy</span>
+            </div>
+
+            <div class="info-panel" id="infoPanel">
+                <h3>Welcome to Privacy Taxonomy!</h3>
+                <p><strong>Instructions:</strong></p>
+                <p>• Click nodes to explore and expand/collapse</p>
+                <p>• Hover for detailed descriptions</p>
+                <p>• Use search to find specific techniques</p>
+                <p>• Toggle between tree and network layouts</p>
+                <p>• Arrows show parent → child relationships</p>
             </div>
         </div>
-        
-        <div class="legend">
-            <div class="legend-item">
-                <div class="legend-circle" style="background: linear-gradient(135deg, #ff6b6b, #e74c3c); border-color: #c0392b;"></div>
-                <span>Root Concept</span>
+
+        <div class="main-content">
+            <div id="graph"></div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-circle" style="background: #ff6b6b;"></div>
+                    <span>Root (Privacy)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-circle" style="background: #4ecdc4;"></div>
+                    <span>Categories</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-circle" style="background: #45b7d1;"></div>
+                    <span>Techniques</span>
+                </div>
             </div>
-            <div class="legend-item">
-                <div class="legend-circle" style="background: linear-gradient(135deg, #feca57, #f39c12); border-color: #e67e22;"></div>
-                <span>Interactive Protocols</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-circle" style="background: linear-gradient(135deg, #a29bfe, #9b59b6); border-color: #8e44ad;"></div>
-                <span>Non-Interactive Protocols</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-circle" style="background: linear-gradient(135deg, #f9ca24, #f1c40f); border-color: #f39c12;"></div>
-                <span>Interactive Methods</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-circle" style="background: linear-gradient(135deg, #74b9ff, #3498db); border-color: #2980b9;"></div>
-                <span>Non-Interactive Methods</span>
+
+            <div class="instructions">
+                💡 Hover over nodes for details • Click to expand/collapse • Double-click to focus • Arrows show hierarchy
             </div>
         </div>
     </div>
@@ -337,407 +463,548 @@
     <div class="tooltip" id="tooltip"></div>
 
     <script>
-        // Privacy protocols data structure
         const privacyData = {
             name: "Privacy",
+            id: "privacy",
+            description: "The overarching concept of controlling personal information disclosure and protecting user data from unauthorized access.",
+            category: "root",
             children: [
                 {
-                    name: "Interactive Protocols",
+                    name: "Anonymity",
+                    id: "anonymity", 
+                    description: "Techniques that focus on hiding identity and creating unlinkability between actions and users.",
+                    category: "main",
                     children: [
-                        { name: "Identity Mixers", note: "" },
-                        { name: "Anonymous Credentials", note: "issuance phase" },
-                        { name: "Mixnets", note: "" },
-                        { name: "CoinJoin + CoinShuffle", note: "" },
-                        { name: "Blind Signatures", note: "signing is interactive" },
-                        { name: "Secure Multiparty Computation - SMC", note: "" },
-                        { name: "Stealth Transactions", note: "setup/negotiation" }
+                        { 
+                            name: "Identity", id: "identity",
+                            description: "The fundamental concept of who someone is in digital systems. Protects real-world identities from being linked to digital activities.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Claims", id: "claims",
+                            description: "Assertions about identity or attributes that can be verified without revealing underlying personal information.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Anonymous Credentials", id: "anonymous_credentials",
+                            description: "Cryptographic systems allowing users to prove possession of credentials without revealing identity or unrelated information.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Identity Mixers", id: "identity_mixers",
+                            description: "Advanced protocols enabling anonymous authentication and selective attribute disclosure without linking transactions.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Mixnets", id: "mixnets",
+                            description: "Multistage systems using cryptography to provide anonymity by routing messages through intermediate nodes.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Group Signatures", id: "group_signatures",
+                            description: "Signature schemes enabling user anonymity within groups, with a group manager who can revoke anonymity when needed.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Ring Signatures", id: "ring_signatures",
+                            description: "Digital signatures created by group members where it's impossible to determine which specific person created the signature.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "CoinJoin + CoinShuffle", id: "coinjoin",
+                            description: "Bitcoin mixing techniques combining multiple transactions to obscure connections between inputs and outputs.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Blind Signatures", id: "blind_signatures",
+                            description: "Cryptographic signatures where the signer cannot see the content being signed, enabling anonymous digital cash.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Bulletproofs", id: "bulletproofs",
+                            description: "Cryptographic proofs enabling range proofs without revealing actual values, useful for private cryptocurrency transactions.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "BOLT", id: "bolt",
+                            description: "Blind Off-chain Lightweight Transactions protocol for privacy-preserving payment channels and anonymous micropayments.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Monero, Zcash", id: "privacy_coins",
+                            description: "Privacy-focused cryptocurrencies using ring signatures (Monero) and zk-SNARKs (Zcash) for transaction anonymity.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Stealth Transactions", id: "stealth",
+                            description: "Transaction methods hiding recipient addresses on blockchain while allowing them to receive and spend funds.",
+                            category: "technique"
+                        }
                     ]
                 },
                 {
-                    name: "Non-Interactive Protocols",
+                    name: "Confidentiality",
+                    id: "confidentiality",
+                    description: "Methods ensuring data remains secret from unauthorized parties through encryption and secure computation.",
+                    category: "main",
                     children: [
-                        { name: "Credentials", note: "" },
-                        { name: "Identity", note: "" },
-                        { name: "Claims", note: "" },
-                        { name: "PKI", note: "" },
-                        { name: "Private Key Infrastructure", note: "" },
-                        { name: "Digital Signature", note: "" },
-                        { name: "Group Signatures", note: "" },
-                        { name: "Ring Signatures", note: "" },
-                        { name: "ZK-SNARKs", note: "" },
-                        { name: "ZK-STARKs", note: "" },
-                        { name: "ZK-Rollups", note: "" },
-                        { name: "Bulletproofs", note: "" },
-                        { name: "BOLT", note: "non-interactive once setup" },
-                        { name: "PGP", note: "" },
-                        { name: "PRF", note: "" },
-                        { name: "HMAC, KDF", note: "" },
-                        { name: "OPRF", note: "hybrid but usually non-interactive" },
-                        { name: "Homomorphic Encryption", note: "" },
-                        { name: "PKE, FHE", note: "" }
+                        { 
+                            name: "Credentials", id: "credentials",
+                            description: "Digital certificates attesting to identity, attributes, or authorization while maintaining privacy when possible.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "PKI", id: "pki",
+                            description: "Public Key Infrastructure - framework managing digital certificates and public-key encryption for secure communications.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Private Key Infrastructure", id: "private_key_infrastructure",
+                            description: "Systems focused on secure generation, storage, and management of private keys used for decryption and signing.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Digital Signature", id: "digital_signature",
+                            description: "Cryptographic mechanisms providing authentication, non-repudiation, and integrity for digital messages.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Project", id: "project",
+                            description: "Generic term referring to specific privacy projects or implementations within confidentiality frameworks.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "ZK-SNARKs", id: "zk_snarks",
+                            description: "Zero-Knowledge Succinct Non-Interactive Arguments - proofs validating claims without revealing private information.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "ZK-STARKs", id: "zk_starks",
+                            description: "Zero-Knowledge Scalable Transparent Arguments - more scalable than SNARKs and don't require trusted setup.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "ZK-Rollups", id: "zk_rollups",
+                            description: "Layer 2 blockchain scaling solutions using zero-knowledge proofs to bundle transactions while maintaining privacy.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "PGP", id: "pgp",
+                            description: "Pretty Good Privacy - encryption program providing cryptographic privacy and authentication for data communication.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "PRF", id: "prf",
+                            description: "Pseudorandom Function - cryptographic functions appearing random without the secret key but deterministic with it.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "HMAC, KDF", id: "hmac_kdf",
+                            description: "Hash-based Message Authentication Code and Key Derivation Function for message integrity and secure key generation.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "OPRF", id: "oprf",
+                            description: "Oblivious Pseudorandom Function - protocol allowing function evaluation without server learning client input.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "Homomorphic Encryption", id: "homomorphic",
+                            description: "Encryption allowing computations on encrypted data without decryption, enabling privacy-preserving computation.",
+                            category: "technique"
+                        },
+                        { 
+                            name: "PKE, FHE, SMC", id: "advanced_crypto",
+                            description: "Public Key Encryption, Fully Homomorphic Encryption, and Secure Multi-party Computation methods.",
+                            category: "technique"
+                        }
                     ]
                 }
             ]
         };
 
-        // Detailed descriptions for tooltips
-        const descriptions = {
-            "Privacy": "The fundamental concept of protecting personal information, communications, and digital activities through various cryptographic and technical protocols. It encompasses both hiding identity (anonymity) and protecting content (confidentiality).",
-            
-            "Interactive Protocols": "Privacy methods requiring real-time communication, coordination, or negotiation between multiple parties. These protocols typically involve multiple rounds of message exchange to achieve privacy goals.",
-            
-            "Non-Interactive Protocols": "Privacy methods that can function without ongoing communication between parties once initially established. These protocols allow privacy-preserving operations with minimal or no interaction.",
+        // Graph setup
+        let width = window.innerWidth - 350;
+        let height = window.innerHeight;
+        let isTreeLayout = true;
+        let selectedNode = null;
+        let nodeId = 0;
 
-            // Interactive Protocols
-            "Identity Mixers": "Advanced cryptographic systems that enable anonymous authentication by allowing users to prove possession of credentials without revealing their identity. They use sophisticated mixing techniques to break linkability between different authentications.",
-            
-            "Anonymous Credentials": "Digital certificates that allow users to prove certain attributes (age, membership, etc.) without revealing their identity. The issuance phase requires interaction between the credential issuer and holder to establish the cryptographic relationship.",
-            
-            "Mixnets": "Networks that provide strong anonymity by routing messages through multiple intermediate nodes (mixes) that shuffle, delay, and re-encrypt messages. Each mix removes one layer of encryption, making traffic analysis extremely difficult.",
-            
-            "CoinJoin + CoinShuffle": "Bitcoin privacy protocols that allow multiple users to combine their transactions into a single large transaction, making it difficult to determine which inputs correspond to which outputs. Requires coordination among participants.",
-            
-            "Blind Signatures": "Cryptographic primitive where a signer signs a message without seeing its content. The signing process is interactive - the message is 'blinded' before signing and 'unblinded' after, ensuring the signer cannot link the signature to the original interaction.",
-            
-            "Secure Multiparty Computation - SMC": "Protocols enabling multiple parties to jointly compute functions over their private inputs without revealing those inputs to each other. Requires extensive interaction and communication between all participants throughout the computation.",
-            
-            "Stealth Transactions": "Privacy-preserving payment methods where the recipient's address is hidden from public view. The setup and negotiation phase requires interaction between sender and receiver to establish shared secrets for address generation.",
+        const svg = d3.select("#graph")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
 
-            // Non-Interactive Protocols
-            "Credentials": "Digital certificates or tokens that attest to certain attributes or permissions. Once issued, they can typically be verified without requiring interaction with the issuing authority.",
-            
-            "Identity": "Digital representations of entities (users, devices, organizations) that can be verified and authenticated through cryptographic means without requiring constant interaction with identity providers.",
-            
-            "Claims": "Assertions about entities or their attributes that can be cryptographically verified. Once established, claims can be validated independently without contacting the original asserting party.",
-            
-            "PKI": "Public Key Infrastructure - a framework for managing digital certificates and public-key encryption. Once established, enables secure communication and authentication without requiring interactive key exchange for each operation.",
-            
-            "Private Key Infrastructure": "Systems for securely generating, storing, and managing private cryptographic keys. Once properly established, allows for non-interactive signing and decryption operations.",
-            
-            "Digital Signature": "Cryptographic mechanism that ensures authenticity and integrity of digital messages. Once a message is signed, the signature can be verified by anyone with the public key without interaction with the signer.",
-            
-            "Group Signatures": "Allow members of a group to sign messages on behalf of the group without revealing which specific member created the signature. Verification requires no interaction with the signer or group manager.",
-            
-            "Ring Signatures": "Signatures that prove the signer belongs to a specific group (ring) of possible signers without revealing which member actually signed. Provides anonymity within the group without requiring interaction.",
-            
-            "ZK-SNARKs": "Zero-Knowledge Succinct Non-Interactive Arguments of Knowledge - cryptographic proofs that allow verification of computational statements without revealing the underlying data. 'Non-interactive' means proofs can be verified without communication with the prover.",
-            
-            "ZK-STARKs": "Zero-Knowledge Scalable Transparent Arguments of Knowledge - similar to SNARKs but with better scalability, transparency (no trusted setup), and quantum resistance. Verification is completely non-interactive.",
-            
-            "ZK-Rollups": "Layer-2 blockchain scaling solutions that bundle multiple transactions and generate a zero-knowledge proof of their validity. Once the proof is generated, it can be verified on-chain without interaction with transaction originators.",
-            
-            "Bulletproofs": "Short non-interactive zero-knowledge proofs that don't require a trusted setup. They're particularly efficient for proving that committed values lie within a specific range, commonly used in confidential transactions.",
-            
-            "BOLT": "Blind Off-chain Lightweight Transactions - a protocol for anonymous payments that becomes non-interactive once the initial channel setup is complete. Subsequent payments can be made without ongoing coordination.",
-            
-            "PGP": "Pretty Good Privacy - an encryption program providing cryptographic privacy and authentication. Once keys are exchanged, encryption and decryption operations are non-interactive.",
-            
-            "PRF": "Pseudorandom Functions - cryptographic functions that appear random but are deterministic. Once established with a shared key, they can generate pseudorandom outputs non-interactively.",
-            
-            "HMAC, KDF": "Hash-based Message Authentication Code and Key Derivation Functions - cryptographic primitives for message authentication and key generation. Once keys are established, these operations are entirely non-interactive.",
-            
-            "OPRF": "Oblivious Pseudorandom Functions - allow one party to learn the output of a pseudorandom function on their input without the other party learning the input. While setup may be interactive, evaluation is typically non-interactive.",
-            
-            "Homomorphic Encryption": "Encryption schemes that allow computations to be performed on encrypted data without first decrypting it. Once data is encrypted, computations can be performed non-interactively, producing encrypted results.",
-            
-            "PKE, FHE": "Public Key Encryption and Fully Homomorphic Encryption - advanced encryption schemes. PKE enables secure communication without prior key exchange, while FHE allows arbitrary computations on encrypted data, both operating non-interactively."
-        };
+        // Define arrow markers
+        const defs = svg.append("defs");
 
-        // Graph dimensions and setup
-        let width, height;
-        let svg, g, tree, root, tooltip;
-        let i = 0;
-        const duration = 750;
+        // Standard arrowhead
+        defs.append("marker")
+            .attr("id", "arrowhead")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 8)
+            .attr("refY", 0)
+            .attr("markerWidth", 8)
+            .attr("markerHeight", 8)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .style("fill", "rgba(255, 255, 255, 0.6)")
+            .style("stroke", "none");
 
-        function initGraph() {
-            // Remove loading indicator
-            document.querySelector('.loading').remove();
-            
-            // Set dimensions based on container
-            const container = d3.select("#graph-container");
-            const containerRect = container.node().getBoundingClientRect();
-            
-            width = containerRect.width - 40;
-            height = containerRect.height - 40;
-            
-            const margin = { top: 40, right: 120, bottom: 40, left: 120 };
-            const innerWidth = width - margin.left - margin.right;
-            const innerHeight = height - margin.top - margin.bottom;
+        // Highlighted arrowhead
+        defs.append("marker")
+            .attr("id", "arrowhead-highlighted")
+            .attr("viewBox", "0 -5 10 10")
+            .attr("refX", 8)
+            .attr("refY", 0)
+            .attr("markerWidth", 8)
+            .attr("markerHeight", 8)
+            .attr("orient", "auto")
+            .append("path")
+            .attr("d", "M0,-5L10,0L0,5")
+            .style("fill", "rgba(255, 215, 0, 0.8)")
+            .style("stroke", "none");
 
-            // Create SVG
-            svg = container
-                .append("svg")
-                .attr("width", width)
-                .attr("height", height)
-                .style("background", "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #dee2e6 100%)")
-                .style("border-radius", "15px");
+        const g = svg.append("g");
 
-            // Add gradient definitions
-            const defs = svg.append("defs");
-
-            // Define gradients
-            const gradients = [
-                { id: "rootGradient", stops: [{ offset: "0%", color: "#ff6b6b" }, { offset: "100%", color: "#e74c3c" }] },
-                { id: "interactiveGradient", stops: [{ offset: "0%", color: "#feca57" }, { offset: "100%", color: "#f39c12" }] },
-                { id: "nonInteractiveGradient", stops: [{ offset: "0%", color: "#a29bfe" }, { offset: "100%", color: "#9b59b6" }] },
-                { id: "interactiveLeafGradient", stops: [{ offset: "0%", color: "#f9ca24" }, { offset: "100%", color: "#f1c40f" }] },
-                { id: "nonInteractiveLeafGradient", stops: [{ offset: "0%", color: "#74b9ff" }, { offset: "100%", color: "#3498db" }] }
-            ];
-
-            gradients.forEach(grad => {
-                const gradient = defs.append("radialGradient").attr("id", grad.id);
-                grad.stops.forEach(stop => {
-                    gradient.append("stop")
-                        .attr("offset", stop.offset)
-                        .attr("stop-color", stop.color);
-                });
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
             });
 
-            g = svg.append("g")
-                .attr("transform", `translate(${margin.left},${margin.top})`);
+        svg.call(zoom);
 
-            // Create tree layout
-            tree = d3.tree().size([innerHeight, innerWidth]);
+        // Force simulation
+        const simulation = d3.forceSimulation()
+            .force("link", d3.forceLink().id(d => d.data.id).distance(80).strength(0.5))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(40));
 
-            // Create hierarchy
-            root = d3.hierarchy(privacyData);
-            root.x0 = innerHeight / 2;
-            root.y0 = 0;
+        const tooltip = d3.select("#tooltip");
+        const infoPanel = d3.select("#infoPanel");
+        const breadcrumb = d3.select("#breadcrumb");
 
-            // Collapse all children initially except first level
-            root.children.forEach(collapse);
+        let root = d3.hierarchy(privacyData);
+        let nodes, links;
 
-            // Setup tooltip
-            tooltip = d3.select("#tooltip");
+        function initializeGraph() {
+            root.x0 = height / 2;
+            root.y0 = width / 2;
+            
+            // Initially collapse children
+            if (root.children) {
+                root.children.forEach(d => {
+                    if (d.children) {
+                        d._children = d.children;
+                        d.children = null;
+                    }
+                });
+            }
 
-            // Initial render
-            update(root);
-
-            // Expand first level after a delay
-            setTimeout(() => {
-                if (root._children) {
-                    root.children = root._children;
-                    root._children = null;
-                }
-                update(root);
-            }, 500);
+            updateGraph();
         }
 
-        function collapse(d) {
-            if (d.children) {
-                d._children = d.children;
-                d._children.forEach(collapse);
-                d.children = null;
+        function updateGraph() {
+            if (isTreeLayout) {
+                updateTreeLayout();
+            } else {
+                updateForceLayout();
             }
         }
 
-        function update(source) {
-            const treeData = tree(root);
-            const nodes = treeData.descendants();
-            const links = treeData.descendants().slice(1);
+        function updateTreeLayout() {
+            const treemap = d3.tree().size([height - 100, width - 200]);
+            const treeData = treemap(root);
+            
+            nodes = treeData.descendants();
+            links = treeData.descendants().slice(1);
 
-            // Normalize for fixed-depth
-            nodes.forEach(d => d.y = d.depth * (width < 768 ? 180 : 220));
+            updateNodes();
+            updateLinks();
+            updateStats();
+            
+            simulation.stop();
+        }
 
-            // Update nodes
-            const node = g.selectAll('g.node')
-                .data(nodes, d => d.id || (d.id = ++i));
+        function updateForceLayout() {
+            nodes = root.descendants();
+            links = root.links();
 
-            // Enter new nodes
-            const nodeEnter = node.enter().append('g')
-                .attr('class', 'node')
-                .attr('transform', d => `translate(${source.y0},${source.x0})`)
-                .on('click', click)
-                .on('mouseover', function(event, d) {
-                    showTooltip(event, d);
-                })
-                .on('mouseout', function() {
-                    hideTooltip();
-                });
+            updateNodes();
+            updateLinks();
+            updateStats();
 
-            // Add circles
-            nodeEnter.append('circle')
-                .attr('r', 1e-6)
-                .style('fill', getNodeFill)
-                .style('stroke', getNodeStroke)
-                .style('stroke-width', '2px')
-                .style('filter', getNodeFilter);
+            simulation.nodes(nodes);
+            simulation.force("link").links(links);
+            simulation.alpha(1).restart();
+        }
 
-            // Add main text
-            nodeEnter.append('text')
-                .attr('dy', '.35em')
-                .attr('x', d => d.children || d._children ? -13 : 13)
-                .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
-                .text(d => d.data.name)
-                .style('fill-opacity', 1e-6);
+        function updateNodes() {
+            const node = g.selectAll(".node")
+                .data(nodes, d => d.data.id);
 
-            // Add context notes for leaf nodes
-            nodeEnter.filter(d => d.data.note && d.data.note.trim())
-                .append('text')
-                .attr('class', 'context-note')
-                .attr('dy', '1.5em')
-                .attr('x', d => d.children || d._children ? -13 : 13)
-                .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
-                .text(d => `[${d.data.note}]`)
-                .style('fill-opacity', 1e-6);
-
-            // Transition nodes to their new position
-            const nodeUpdate = nodeEnter.merge(node);
-
-            nodeUpdate.transition()
-                .duration(duration)
-                .attr('transform', d => `translate(${d.y},${d.x})`);
-
-            nodeUpdate.select('circle')
+            node.exit()
                 .transition()
-                .duration(duration)
-                .attr('r', d => {
-                    if (d.depth === 0) return 12;
-                    if (d.depth === 1) return 10;
-                    return 7;
-                });
-
-            nodeUpdate.select('text')
-                .transition()
-                .duration(duration)
-                .style('fill-opacity', 1);
-
-            nodeUpdate.select('.context-note')
-                .transition()
-                .duration(duration)
-                .style('fill-opacity', 0.7);
-
-            // Remove exiting nodes
-            const nodeExit = node.exit().transition()
-                .duration(duration)
-                .attr('transform', d => `translate(${source.y},${source.x})`)
+                .duration(500)
+                .style("opacity", 0)
                 .remove();
 
-            nodeExit.select('circle').attr('r', 1e-6);
-            nodeExit.selectAll('text').style('fill-opacity', 1e-6);
+            const nodeEnter = node.enter().append("g")
+                .attr("class", d => `node ${d.data.category}`)
+                .style("opacity", 0)
+                .on("click", handleNodeClick)
+                .on("dblclick", handleNodeDoubleClick)
+                .on("mouseover", handleMouseOver)
+                .on("mousemove", handleMouseMove)
+                .on("mouseout", handleMouseOut);
 
-            // Update links
-            const link = g.selectAll('path.link')
-                .data(links, d => d.id);
+            nodeEnter.append("circle")
+                .attr("r", d => {
+                    if (d.data.category === 'root') return 18;
+                    if (d.data.category === 'main') return 14;
+                    return 10;
+                });
 
-            const linkEnter = link.enter().insert('path', 'g')
-                .attr('class', 'link')
-                .attr('d', d => {
-                    const o = { x: source.x0, y: source.y0 };
-                    return diagonal(o, o);
-                })
-                .style('stroke', getLinkStroke)
-                .style('stroke-width', '2px');
+            nodeEnter.append("text")
+                .attr("dy", d => d.children || d._children ? -25 : 25)
+                .text(d => d.data.name.length > 15 ? d.data.name.substring(0, 12) + "..." : d.data.name);
+
+            const nodeUpdate = nodeEnter.merge(node);
+
+            nodeUpdate
+                .transition()
+                .duration(500)
+                .style("opacity", 1)
+                .attr("transform", d => {
+                    if (isTreeLayout) {
+                        return `translate(${d.y + 100},${d.x + 50})`;
+                    }
+                    return `translate(${d.x || width/2},${d.y || height/2})`;
+                });
+
+            if (!isTreeLayout) {
+                nodeUpdate.call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+                simulation.on("tick", () => {
+                    g.selectAll(".link")
+                        .attr("x1", d => d.source.x)
+                        .attr("y1", d => d.source.y)
+                        .attr("x2", d => d.target.x)
+                        .attr("y2", d => d.target.y);
+
+                    g.selectAll(".node")
+                        .attr("transform", d => `translate(${d.x},${d.y})`);
+                });
+            }
+        }
+
+        function updateLinks() {
+            const link = g.selectAll(".link")
+                .data(links, d => d.target ? `${d.source.data.id}-${d.target.data.id}` : d.data.id);
+
+            link.exit().remove();
+
+            const linkEnter = link.enter()
+                .insert("line", "g")
+                .attr("class", "link")
+                .style("opacity", 0);
 
             const linkUpdate = linkEnter.merge(link);
 
-            linkUpdate.transition()
-                .duration(duration)
-                .attr('d', d => diagonal(d, d.parent));
+            linkUpdate
+                .transition()
+                .duration(500)
+                .style("opacity", 1);
 
-            link.exit().transition()
-                .duration(duration)
-                .attr('d', d => {
-                    const o = { x: source.x, y: source.y };
-                    return diagonal(o, o);
-                })
-                .remove();
-
-            // Store old positions for transition
-            nodes.forEach(d => {
-                d.x0 = d.x;
-                d.y0 = d.y;
-            });
-        }
-
-        function getNodeFill(d) {
-            if (d.depth === 0) return 'url(#rootGradient)';
-            if (d.depth === 1) {
-                return d.data.name === 'Interactive Protocols' ? 'url(#interactiveGradient)' : 'url(#nonInteractiveGradient)';
+            if (isTreeLayout) {
+                // For tree layout, use lines instead of paths for simplicity
+                linkUpdate
+                    .attr("x1", d => (d.parent ? d.parent.y + 100 : d.y + 100))
+                    .attr("y1", d => (d.parent ? d.parent.x + 50 : d.x + 50))
+                    .attr("x2", d => d.y + 100)
+                    .attr("y2", d => d.x + 50);
+            } else {
+                linkUpdate
+                    .attr("x1", d => d.source.x || width/2)
+                    .attr("y1", d => d.source.y || height/2)
+                    .attr("x2", d => d.target.x || width/2)
+                    .attr("y2", d => d.target.y || height/2);
             }
-            return d.parent.data.name === 'Interactive Protocols' ? 'url(#interactiveLeafGradient)' : 'url(#nonInteractiveLeafGradient)';
         }
 
-        function getNodeStroke(d) {
-            if (d.depth === 0) return '#c0392b';
-            if (d.depth === 1) {
-                return d.data.name === 'Interactive Protocols' ? '#e67e22' : '#8e44ad';
-            }
-            return d.parent.data.name === 'Interactive Protocols' ? '#f39c12' : '#2980b9';
+        function updateStats() {
+            const visibleNodes = nodes.filter(d => d.depth <= 2);
+            document.getElementById('visibleCount').textContent = visibleNodes.length;
         }
 
-        function getNodeFilter(d) {
-            const colors = {
-                0: 'rgba(231, 76, 60, 0.3)',
-                'Interactive Protocols': 'rgba(243, 156, 18, 0.3)',
-                'Non-Interactive Protocols': 'rgba(155, 89, 182, 0.3)',
-                'interactive-leaf': 'rgba(241, 196, 15, 0.3)',
-                'non-interactive-leaf': 'rgba(52, 152, 219, 0.3)'
-            };
+        // Event handlers
+        function handleNodeClick(event, d) {
+            event.stopPropagation();
             
-            let colorKey;
-            if (d.depth === 0) colorKey = 0;
-            else if (d.depth === 1) colorKey = d.data.name;
-            else colorKey = d.parent.data.name === 'Interactive Protocols' ? 'interactive-leaf' : 'non-interactive-leaf';
-            
-            return `drop-shadow(0 2px 6px ${colors[colorKey] || colors[0]})`;
-        }
-
-        function getLinkStroke(d) {
-            if (d.parent && d.parent.depth === 0) {
-                return d.data.name === 'Interactive Protocols' ? '#f39c12' : '#9b59b6';
+            if (selectedNode) {
+                selectedNode.classed("selected", false);
             }
-            if (d.parent && d.parent.data.name === 'Interactive Protocols') return '#f39c12';
-            if (d.parent && d.parent.data.name === 'Non-Interactive Protocols') return '#9b59b6';
-            return '#e74c3c';
-        }
+            
+            selectedNode = d3.select(this);
+            selectedNode.classed("selected", true);
+            
+            updateInfoPanel(d);
+            updateBreadcrumb(d);
 
-        function diagonal(s, d) {
-            return `M ${s.y} ${s.x}
-                    C ${(s.y + d.y) / 2} ${s.x},
-                      ${(s.y + d.y) / 2} ${d.x},
-                      ${d.y} ${d.x}`;
-        }
-
-        function click(event, d) {
             if (d.children) {
                 d._children = d.children;
                 d.children = null;
-            } else {
+            } else if (d._children) {
                 d.children = d._children;
                 d._children = null;
             }
-            update(d);
+            
+            updateGraph();
         }
 
-        function showTooltip(event, d) {
-            let description = descriptions[d.data.name] || `Privacy protocol: ${d.data.name}`;
-            if (d.data.note && d.data.note.trim()) {
-                description += ` <br><br><em><strong>Note:</strong> ${d.data.note}</em>`;
-            }
+        function handleNodeDoubleClick(event, d) {
+            event.stopPropagation();
             
+            const [x, y] = isTreeLayout ? [d.y + 100, d.x + 50] : [d.x, d.y];
+            const transform = d3.zoomIdentity
+                .translate(width / 2 - x, height / 2 - y)
+                .scale(1.5);
+            
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, transform);
+        }
+
+        function handleMouseOver(event, d) {
             tooltip
                 .style("opacity", 1)
-                .style("left", (event.pageX + 15) + "px")
-                .style("top", (event.pageY - 10) + "px")
-                .html(description);
+                .html(`<h4>${d.data.name}</h4><p>${d.data.description}</p>`);
+
+            if (!isTreeLayout) {
+                highlightConnections(d);
+            }
         }
 
-        function hideTooltip() {
+        function handleMouseMove(event) {
+            tooltip
+                .style("left", (event.pageX + 15) + "px")
+                .style("top", (event.pageY - 10) + "px");
+        }
+
+        function handleMouseOut(event, d) {
             tooltip.style("opacity", 0);
+            
+            if (!isTreeLayout) {
+                clearHighlights();
+            }
+        }
+
+        function highlightConnections(node) {
+            g.selectAll(".node").classed("dimmed", true);
+            g.selectAll(".link").classed("dimmed", true);
+            
+            g.selectAll(".node")
+                .filter(d => d === node)
+                .classed("highlighted dimmed", false);
+                
+            g.selectAll(".link")
+                .filter(d => d.source === node || d.target === node)
+                .classed("highlighted dimmed", false)
+                .each(function(d) {
+                    const connectedNode = d.source === node ? d.target : d.source;
+                    g.selectAll(".node")
+                        .filter(n => n === connectedNode)
+                        .classed("highlighted dimmed", false);
+                });
+        }
+
+        function clearHighlights() {
+            g.selectAll(".node").classed("highlighted dimmed", false);
+            g.selectAll(".link").classed("highlighted dimmed", false);
+        }
+
+        function updateInfoPanel(d) {
+            infoPanel.html(`
+                <h3>${d.data.name}</h3>
+                <p><strong>Category:</strong> ${d.data.category}</p>
+                <p><strong>Description:</strong> ${d.data.description}</p>
+                ${d.children ? `<p><strong>Sub-techniques:</strong> ${d.children.length}</p>` : ''}
+                ${d._children ? `<p><strong>Hidden sub-techniques:</strong> ${d._children.length}</p>` : ''}
+            `);
+        }
+
+        function updateBreadcrumb(d) {
+            const path = [];
+            let current = d;
+            
+            while (current) {
+                path.unshift(current.data.name);
+                current = current.parent;
+            }
+            
+            breadcrumb.html(
+                path.map((name, i) => 
+                    `<span class="${i === path.length - 1 ? 'breadcrumb-active' : ''}">${name}</span>`
+                ).join(' → ')
+            );
+        }
+
+        // Drag functions for force layout
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
         }
 
         // Control functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+
+        function centerGraph() {
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity);
+        }
+
+        function toggleLayout() {
+            isTreeLayout = !isTreeLayout;
+            const btn = document.getElementById('layoutBtn');
+            btn.textContent = isTreeLayout ? '🌐 Network Layout' : '🌳 Tree Layout';
+            btn.classList.toggle('active');
+            updateGraph();
+        }
+
         function expandAll() {
             function expand(d) {
                 if (d._children) {
                     d.children = d._children;
                     d._children = null;
                 }
-                if (d.children) d.children.forEach(expand);
+                if (d.children) {
+                    d.children.forEach(expand);
+                }
             }
             expand(root);
-            update(root);
+            updateGraph();
         }
 
         function collapseAll() {
@@ -748,173 +1015,120 @@
                     d.children = null;
                 }
             }
-            root.children.forEach(collapse);
-            update(root);
+            if (root.children) {
+                root.children.forEach(collapse);
+            }
+            updateGraph();
         }
 
-        function resetView() {
-            collapseAll();
+        function resetSelection() {
+            if (selectedNode) {
+                selectedNode.classed("selected", false);
+                selectedNode = null;
+            }
+            clearHighlights();
+            
+            infoPanel.html(`
+                <h3>Welcome to Privacy Taxonomy!</h3>
+                <p><strong>Instructions:</strong></p>
+                <p>• Click nodes to explore and expand/collapse</p>
+                <p>• Hover for detailed descriptions</p>
+                <p>• Use search to find specific techniques</p>
+                <p>• Toggle between tree and network layouts</p>
+                <p>• Arrows show parent → child relationships</p>
+            `);
+            
+            breadcrumb.html('<span class="breadcrumb-active">Privacy</span>');
+        }
+
+        function searchNodes() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            g.selectAll(".node")
+                .classed("highlighted", d => {
+                    const match = d.data.name.toLowerCase().includes(searchTerm) || 
+                                 d.data.description.toLowerCase().includes(searchTerm);
+                    return searchTerm && match;
+                })
+                .classed("dimmed", d => {
+                    if (!searchTerm) return false;
+                    const match = d.data.name.toLowerCase().includes(searchTerm) || 
+                                 d.data.description.toLowerCase().includes(searchTerm);
+                    return !match;
+                });
+
+            // Auto-expand nodes that match search
+            if (searchTerm) {
+                root.descendants().forEach(d => {
+                    const match = d.data.name.toLowerCase().includes(searchTerm) || 
+                                 d.data.description.toLowerCase().includes(searchTerm);
+                    if (match && d.parent && d.parent._children) {
+                        d.parent.children = d.parent._children;
+                        d.parent._children = null;
+                    }
+                });
+                updateGraph();
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            width = window.innerWidth - 350;
+            height = window.innerHeight;
+            
+            svg.attr("width", width).attr("height", height);
+            
+            if (isTreeLayout) {
+                updateGraph();
+            } else {
+                simulation.force("center", d3.forceCenter(width / 2, height / 2));
+                simulation.alpha(0.3).restart();
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return; // Don't trigger when typing in search
+            
+            switch(e.key.toLowerCase()) {
+                case 'c':
+                    centerGraph();
+                    break;
+                case 't':
+                    toggleLayout();
+                    break;
+                case 'e':
+                    expandAll();
+                    break;
+                case 'r':
+                    collapseAll();
+                    break;
+                case 'escape':
+                    resetSelection();
+                    break;
+            }
+        });
+
+        // Initialize the graph
+        initializeGraph();
+        
+        // Update initial stats
+        document.getElementById('nodeCount').textContent = root.descendants().length;
+        
+        // Add some initial pulsing to root
+        setTimeout(() => {
+            g.select('.node.root').classed('pulsing', true);
             setTimeout(() => {
-                if (root._children) {
-                    root.children = root._children;
-                    root._children = null;
-                }
-                update(root);
-            }, 300);
-        }
+                g.select('.node.root').classed('pulsing', false);
+            }, 3000);
+        }, 1000);
 
-        function downloadSVG() {
-            const svgElement = document.querySelector('#graph-container svg');
-            const svgData = new XMLSerializer().serializeToString(svgElement);
-            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-            const svgUrl = URL.createObjectURL(svgBlob);
-            
-            const downloadLink = document.createElement('a');
-            downloadLink.href = svgUrl;
-            downloadLink.download = 'privacy-protocols-taxonomy.svg';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(svgUrl);
-        }
-
-        // Responsive handling
-        function handleResize() {
-            const container = d3.select("#graph-container");
-            const containerRect = container.node().getBoundingClientRect();
-            
-            const newWidth = containerRect.width - 40;
-            const newHeight = containerRect.height - 40;
-            
-            if (Math.abs(newWidth - width) > 50 || Math.abs(newHeight - height) > 50) {
-                width = newWidth;
-                height = newHeight;
-                
-                svg.attr("width", width).attr("height", height);
-                
-                const margin = { top: 40, right: 120, bottom: 40, left: 120 };
-                const innerWidth = width - margin.left - margin.right;
-                const innerHeight = height - margin.top - margin.bottom;
-                
-                tree.size([innerHeight, innerWidth]);
-                update(root);
-            }
-        }
-
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            initGraph();
-            
-            // Add resize listener
-            window.addEventListener('resize', debounce(handleResize, 250));
-        });
-
-        // Utility function for debouncing
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', function(event) {
-            if (event.ctrlKey || event.metaKey) {
-                switch(event.key) {
-                    case 'e':
-                        event.preventDefault();
-                        expandAll();
-                        break;
-                    case 'c':
-                        event.preventDefault();
-                        collapseAll();
-                        break;
-                    case 'r':
-                        event.preventDefault();
-                        resetView();
-                        break;
-                    case 's':
-                        event.preventDefault();
-                        downloadSVG();
-                        break;
-                }
+        // Click outside to deselect
+        svg.on("click", function(event) {
+            if (event.target === this) {
+                resetSelection();
             }
         });
-
-        // Add touch support for mobile
-        let touchStartTime;
-        document.addEventListener('touchstart', function(e) {
-            touchStartTime = Date.now();
-        });
-
-        document.addEventListener('touchend', function(e) {
-            const touchEndTime = Date.now();
-            const touchDuration = touchEndTime - touchStartTime;
-            
-            // Long press (> 500ms) on mobile shows tooltip
-            if (touchDuration > 500 && e.target.closest('.node')) {
-                const node = e.target.closest('.node');
-                const d = d3.select(node).datum();
-                if (d) {
-                    showTooltip({
-                        pageX: e.changedTouches[0].pageX,
-                        pageY: e.changedTouches[0].pageY
-                    }, d);
-                    
-                    // Hide tooltip after 3 seconds
-                    setTimeout(hideTooltip, 3000);
-                }
-            }
-        });
-
-        // Performance optimization: Only update visible elements
-        function isElementVisible(element) {
-            const rect = element.getBoundingClientRect();
-            return (
-                rect.top >= 0 &&
-                rect.left >= 0 &&
-                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-            );
-        }
-
-        // Add loading states for better UX
-        function showLoading() {
-            const container = document.getElementById('graph-container');
-            container.style.opacity = '0.5';
-        }
-
-        function hideLoading() {
-            const container = document.getElementById('graph-container');
-            container.style.opacity = '1';
-        }
-
-        // Enhanced error handling
-        window.addEventListener('error', function(e) {
-            console.error('Privacy Graph Error:', e.error);
-            
-            const container = document.getElementById('graph-container');
-            if (container && !container.querySelector('svg')) {
-                container.innerHTML = `
-                    <div style="display: flex; justify-content: center; align-items: center; height: 100%; flex-direction: column; color: #7f8c8d;">
-                        <h3>⚠️ Error Loading Graph</h3>
-                        <p>Please refresh the page to try again.</p>
-                        <button class="btn" onclick="location.reload()" style="margin-top: 15px;">🔄 Refresh Page</button>
-                    </div>
-                `;
-            }
-        });
-
-        // Add analytics-friendly events (optional)
-        function trackInteraction(action, label) {
-            // Add your analytics tracking here if needed
-            console.log(`Graph Interaction: ${action} - ${label}`);
-        }
     </script>
 </body>
 </html>
